@@ -202,7 +202,10 @@ defmodule Ueberauth.Strategy.Github do
 
   defp fetch_uid("email", %{private: %{github_user: user}}) do
     # private email will not be available as :email and must be fetched
-    fetch_email!(user)
+    case fetch_email!(user) do
+      nil -> raise "Unable to access the user's email address"
+      email -> email
+    end
   end
 
   defp fetch_uid(field, conn) do
@@ -214,11 +217,11 @@ defmodule Ueberauth.Strategy.Github do
   end
 
   defp get_primary_email!(user) do
-    unless user["emails"] && (Enum.count(user["emails"]) > 0) do
-      raise "Unable to access the user's email address"
+    if user["emails"] && (Enum.count(user["emails"]) > 0) do
+      Enum.find(user["emails"], &(&1["primary"]))["email"]
+    else
+      nil
     end
-
-    Enum.find(user["emails"], &(&1["primary"]))["email"]
   end
 
   defp fetch_user(conn, token) do
